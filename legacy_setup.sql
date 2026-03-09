@@ -10,12 +10,13 @@ create table if not exists shipments (
 
 alter table shipments enable row level security;
 
--- CHANGES FOR BUG 1
+-- START CHANGES FOR BUG 1
 create policy "Allow anon read valid shipment statuses"
   on shipments
   for select
   to anon
   using (status in ('Pending', 'In Transit', 'Delivered'));
+-- END CHANGES FOR BUG 1
 
 create policy "Allow anon update"
   on shipments
@@ -38,6 +39,7 @@ create trigger check_status_transition
   for each row
   execute function prevent_delivered_to_pending();
 
+-- START CHANGES FOR audit trail
 create table if not exists audit_logs (
   id bigint generated always as identity primary key,
   shipment_id uuid not null references shipments(id) on delete cascade,
@@ -64,6 +66,7 @@ create trigger shipment_status_audit
   after update of status on shipments
   for each row
   execute function log_shipment_status_change();
+-- END CHANGES FOR audit trail
 
 insert into shipments (status, cargo_details) values
   ('Pending',    '[{"item": "Laptop Batch A", "weight_kg": 120}]'),
