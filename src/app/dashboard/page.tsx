@@ -2,10 +2,14 @@ import { columns } from '@/components/columns'
 import { DataTable } from '@/components/data-table'
 import { supabase } from '@/lib/supabase'
 import type { Shipment } from '@/types/shipment'
+import { normalizeCargoDetails } from '@/utils/normalizeCargoDetails'
 
 export default async function DashboardPage() {
   const { data: shipments } = await supabase.from('shipments').select('*')
-  // TODO: validate data shape before passing to table
+  const normalizedShipments = (shipments ?? []).map((shipment) => ({
+    ...shipment,
+    cargo_details: normalizeCargoDetails(shipment.cargo_details),
+  })) as Shipment[]
 
   return (
     <div className='container mx-auto py-10 px-4'>
@@ -15,7 +19,7 @@ export default async function DashboardPage() {
           Manage and track all active logistics shipments.
         </p>
       </div>
-      <DataTable columns={columns} data={(shipments ?? []) as Shipment[]} />
+      <DataTable columns={columns} data={normalizedShipments} />
     </div>
   )
 }

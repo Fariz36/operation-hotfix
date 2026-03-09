@@ -18,7 +18,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -35,12 +35,12 @@ export function DataTable<TData, TValue>({
   const [sorting, setSorting] = useState<SortingState>([])
   const [tableData, setTableData] = useState<TData[]>(data)
   const [loading, setLoading] = useState(false)
+  const latestSearchRequestRef = useRef(0)
 
   useEffect(() => {
     setTableData(data)
   }, [data])
 
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: tableData,
     columns,
@@ -59,15 +59,31 @@ export function DataTable<TData, TValue>({
       params.delete('sort')
       params.delete('desc')
     }
-    router.push(`/dashboard?${params.toString()}`)
-  }, [table.getState().sorting, searchParams, router])
+
+    const nextQuery = params.toString()
+    const currentQuery = searchParams.toString()
+
+    if (nextQuery !== currentQuery) {
+      router.push(nextQuery ? `/dashboard?${nextQuery}` : '/dashboard')
+    }
+  }, [sorting, searchParams, router])
 
   const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value
+    const requestId = ++latestSearchRequestRef.current
+
     setLoading(true)
-    const results = await searchShipments(query)
-    setTableData(results as TData[])
-    setLoading(false)
+    try {
+      const results = await searchShipments(query)
+
+      if (requestId === latestSearchRequestRef.current) {
+        setTableData(results as TData[])
+      }
+    } finally {
+      if (requestId === latestSearchRequestRef.current) {
+        setLoading(false)
+      }
+    }
   }
 
   return (

@@ -63,6 +63,8 @@ export const columns: ColumnDef<Shipment>[] = [
         const result = await updateShipmentStatus(shipment.id, status)
         if (result.success) {
           toast.success('Status updated successfully')
+        } else {
+          toast.error(result.error || 'Failed to update status')
         }
       }
 
